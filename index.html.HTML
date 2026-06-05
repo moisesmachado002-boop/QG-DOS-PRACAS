@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QG dos Parças - Central de Inteligência PMBA/PMAL</title>
+    <style>
+        :root {
+            --oliva-dark: #1b261b;
+            --oliva-tactical: #2d3e2d;
+            --oliva-light: #445c44;
+            --preto-fosco: #111411;
+            --cinza-asfalto: #222622;
+            --alerta-amarelo: #f39c12;
+            --alerta-ouro: #d4ac0d;
+            --sucesso-verde: #27ae60;
+            --perigo-vermelho: #c0392b;
+            --texto-claro: #eaeded;
+            --texto-escuro: #111;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            background-color: var(--preto-fosco);
+            color: var(--texto-claro);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* TELA DE AUTENTICAÇÃO TÁTICA */
+        #auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--preto-fosco), var(--oliva-dark));
+        }
+
+        .auth-card {
+            background: var(--cinza-asfalto);
+            border: 2px solid var(--oliva-light);
+            border-top: 6px solid var(--alerta-amarelo);
+            padding: 40px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+            text-align: center;
+        }
+
+        .auth-card h2 {
+            margin-top: 0;
+            color: var(--alerta-amarelo);
+            letter-spacing: 2px;
+            font-size: 1.5rem;
+        }
+
+        .auth-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .auth-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--alerta-ouro);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .auth-group input, .auth-group select {
+            width: 100%;
+            padding: 12px;
+            background: var(--preto-fosco);
+            border: 1px solid var(--oliva-light);
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .auth-group input:focus {
+            border-color: var(--alerta-amarelo);
+            outline: none;
+        }
+
+        /* CONSOLE PRINCIPAL (OPERACIONAL) */
+        #main-operational-area { display: none; }
+
+        .navbar {
+            background-color: var(--oliva-dark);
+            border-bottom: 3px solid var(--alerta-amarelo);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 { margin: 0; font-size: 1.2rem; color: var(--alerta-amarelo); }
+        .operator-info { font-size: 0.85rem; color: #bdc3c7; }
+
+        .nav-tabs { display: flex; gap: 5px; background: var(--preto-fosco); padding: 5px; border-radius: 4px; flex-wrap: wrap; }
+        .nav-tabs button {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #95a5a6;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .nav-tabs button.active {
+            background-color: var(--oliva-light);
+            color: white;
+            border-color: var(--alerta-amarelo);
+        }
+
+        .main-container { max-width: 950px; margin: 25px auto; padding: 0 20px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* ARSENAL DE FILTROS */
+        .filter-card, .simulado-setup-card {
+            background: var(--cinza-asfalto);
+            padding: 15px;
+            border: 1px solid var(--oliva-light);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.75rem; color: var(--alerta-ouro); margin-bottom: 5px; text-transform: uppercase; }
+        .filter-group select, .filter-group input {
+            padding: 8px; background: var(--preto-fosco); border: 1px solid var(--oliva-light); color: white; font-family: inherit;
+        }
+
+        /* TIMERS OPERACIONAIS */
+        .timer-bar {
+            background: var(--cinza-asfalto);
+            padding: 10px 20px;
+            border-left: 5px solid var(--alerta-amarelo);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .time-display {
+            background: var(--preto-fosco);
+            color: #2ecc71;
+            padding: 4px 10px;
+            font-weight: bold;
+            border: 1px solid var(--oliva-light);
+        }
+        .time-display.countdown-warn { color: var(--perigo-vermelho); animation: piscar 1s infinite; }
+        @keyframes piscar { 50% { opacity: 0.4; } }
+
+        /* CARD DAS QUESTÕES */
+        .question-card {
+            background: var(--cinza-asfalto);
+            border: 1px solid var(--oliva-light);
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .meta-info {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed var(--oliva-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-badge { font-weight: bold; padding: 2px 6px; font-size: 0.75rem; text-transform: uppercase; border-radius: 2px;}
+        .badge-novo { background: #555; color: #fff; }
+        .badge-acerto { background: var(--sucesso-verde); color: #fff; }
+        .badge-erro { background: var(--perigo-vermelho); color: #fff; }
+
+        .enunciado { font-size: 1.05rem; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; }
+        .options-list { display: flex; flex-direction: column; gap: 10px; }
+
+        /* MECÂNICA ESTILO QCONCURSOS */
+        .option-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--preto-fosco);
+            border: 1px solid var(--oliva-light);
+            padding: 10px 15px;
+            transition: all 0.2s;
+        }
+
+        .option-item {
+            background: transparent;
+            border: none;
+            color: var(--texto-claro);
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: inherit;
+            flex-grow: 1;
+            padding: 5px 0;
+        }
+
+        .btn-eliminar {
+            background: transparent;
+            border: 1px solid #555;
+            color: #777;
+            cursor: pointer;
+            padding: 2px 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .btn-eliminar:hover { background: #333; color: var(--perigo-vermelho); border-color: var(--perigo-vermelho); }
+
+        .option-wrapper.eliminated { opacity: 0.25; text-decoration: line-through; border-color: #333; }
+        .option-wrapper.eliminated .btn-eliminar { color: var(--perigo-vermelho); border-color: var(--perigo-vermelho); }
+        
+        .option-wrapper.selected { border-left: 6px solid var(--alerta-amarelo); background: #223322; }
+        .option-wrapper.correct { background: rgba(39, 174, 96, 0.2) !important; border: 1px solid var(--sucesso-verde) !important; color: #2ecc71; }
+        .option-wrapper.wrong { background: rgba(192, 57, 43, 0.2) !important; border: 1px solid var(--perigo-vermelho) !important; color: #e74c3c; }
+
+        .comment-box {
+            margin-top: 15px;
+            background: var(--oliva-dark);
+            border-left: 4px solid var(--alerta-amarelo);
+            padding: 15px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .actions { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .btn {
+            background-color: var(--oliva-light);
+            color: white;
+            border: 1px solid var(--alerta-amarelo);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+        .btn:hover { background-color: var(--oliva-tactical); }
+        .btn-confirmar { background-color: var(--alerta-amarelo); color: var(--texto-escuro); border-color: var(--alerta-ouro); }
+        .btn-confirmar:hover { background-color: var(--alerta-ouro); }
+        .btn-success { background-color: var(--sucesso-verde); border-color: #219653; }
+        .btn-danger { background-color: var(--perigo-vermelho); border-color: #962d22; }
+
+        /* TABELAS E RELATÓRIOS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: var(--cinza-asfalto); border: 1px solid var(--oliva-light); padding: 15px; text-align: center; }
+        .stat-card h3 { margin: 0 0 5px 0; font-size: 0.75rem; color: var(--alerta-ouro); text-transform: uppercase; }
+        .stat-card p { margin: 0; font-size: 1.6rem; font-weight: bold; }
+
+        .progress-container { background: #333; height: 12px; margin-top: 8px; border: 1px solid var(--oliva-light); }
+        .progress-bar { background: var(--sucesso-verde); height: 100%; width: 0%; transition: width 0.4s; }
+
+        .performance-table { width: 100%; border-collapse: collapse; background: var(--cinza-asfalto); border: 1px solid var(--oliva-light); }
+        .performance-table th, .performance-table td { padding: 10px 12px; text-align: left; font-size: 0.85rem; }
+        .performance-table th { background: var(--oliva-dark); color: var(--alerta-amarelo); border-bottom: 1px solid var(--oliva-light); }
+        .performance-table tr:nth-child(even) { background: var(--preto-fosco); }
+
+        /* FORMATOS DE FORMULÁRIO */
+        .form-card { background: var(--cinza-asfalto); border: 1px solid var(--oliva-light); padding: 25px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.8rem; color: var(--alerta-ouro); margin-bottom: 5px; text-transform: uppercase; }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 10px; background: var(--preto-fosco); border: 1px solid var(--oliva-light); color: white; font-family: inherit;
+        }
+        .bizu-caixa { background: #3a321d; border: 1px solid var(--alerta-amarelo); padding: 12px; margin-bottom: 20px; font-size: 0.85rem; }
+        .code-output { width: 100%; font-family: monospace; background: var(--preto-fosco); color: #2ecc71; border: 1px solid var(--oliva-light); padding: 15px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen">
+        <div class="auth-card">
+            <h2>CONTROLE DE ACESSO</h2>
+            <p style="font-size:0.75rem; color:#888; margin-bottom:25px;">SISTEMA DE PREPARAÇÃO INTELECTUAL COLETIVA</p>
+            <div class="auth-group">
+                <label>Combatente (Identificação)</label>
+                <input type="text" id="auth-user" placeholder="Ex: moises" style="text-transform: lowercase;">
+            </div>
+            <div class="auth-group">
+                <label>Senha de Acesso</label>
+                <input type="password" id="auth-pass" placeholder="********">
+            </div>
+            <button class="btn btn-confirmar" style="width:100%; margin-top:10px; letter-spacing:1px;" onclick="autenticarOperador()">Inicializar Painel</button>
+        </div>
+    </div>
+
+    <div id="main-operational-area">
+        <nav class="navbar">
+            <div>
+                <h1>SISTEMA QG DOS PARÇAS 👮‍♂️⚡</h1>
+                <div class="operator-info">OPERADOR ATIVO: <span id="view-operador" style="color:var(--alerta-amarelo); font-weight:bold;">-</span></div>
+            </div>
+            <div class="nav-tabs">
+                <button id="tab-estudar" class="active" onclick="switchTab('estudar')">Instrução Diária</button>
+                <button id="tab-simulado" onclick="switchTab('simulado')">Simulado Real ⏱️</button>
+                <button id="tab-desempenho" onclick="switchTab('desempenho')">Ficha de Prontidão 📊</button>
+                <button id="tab-cadastrar" onclick="switchTab('cadastrar')">Logística / Inserção</button>
+                <button id="tab-recrutamento" onclick="switchTab('recrutamento')">Recrutamento 🪖</button>
+            </div>
+        </nav>
+
+        <div class="main-container">
+            
+            <div id="panel-estudar" class="panel active">
+                <div class="filter-card">
+                    <div class="filter-group">
+                        <label>Concurso-Alvo</label>
+                        <select id="filtro-concurso" onchange="atualizarMateriasDoFiltro()">
+                            <option value="TODOS">FORÇAS UNIDAS (PMBA + PMAL)</option>
+                            <option value="PMBA">PMBA (Soldado)</option>
+                            <option value="PMAL">PMAL (Soldado)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Matéria (Edital)</label>
+                        <select id="filtro-materia" onchange="atualizarTopicosDoFiltro()">
+                            <option value="TODAS">Todas as Matérias</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Tópico Verticalizado</label>
+                        <select id="filtro-topico" onchange="filtrarEConstruirBanco()">
+                            <option value="TODOS">Todos os Tópicos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Logística de Status</label>
+                        <select id="filtro-status" onchange="filtrarEConstruirBanco()">
+                            <option value="TODAS">Todas as Questões</option>
+                            <option value="NAO_RESPONDIDAS">Não Combatidas</option>
+                            <option value="ACERTADAS">Acertos</option>
+                            <option value="ERRADAS">Erros</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="area-questoes">
+                    <div class="question-card">
+                        <div class="meta-info">
+                            <span id="questao-meta">Carregando missão...</span>
+                            <span id="questao-status-badge" class="status-badge"></span>
+                        </div>
+                        <div class="enunciado" id="questao-enunciado">Buscando inteligência de prova...</div>
+                        <div class="options-list" id="questao-alternativas"></div>
+                        <div class="comment-box" id="questao-comentario"></div>
+                        <div class="actions">
+                            <span id="contador-progresso" style="font-weight: bold; color: #95a5a6; font-size:0.85rem;"></span>
+                            <div>
+                                <button class="btn btn-confirmar" id="btn-confirmar-geral" onclick="confirmarEscolhaGeral()" style="display:none; margin-right:10px;">Disparar Gabarito</button>
+                                <button class="btn" id="btn-proxima" onclick="proximaQuestao()" style="display: none;">Avançar Linha de Frente →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-simulado" class="panel">
+                <div id="simulado-setup">
+                    <h2>Configurar Missão de Simulado</h2>
+                    <div class="simulado-setup-card">
+                        <div class="filter-group">
+                            <label>Diretriz/Foco Prova</label>
+                            <select id="simulado-concurso">
+                                <option value="TODOS">Missão Mista (PMBA + PMAL)</option>
+                                <option value="PMBA">Operação PMBA (Múltipla Escolha)</option>
+                                <option value="PMAL">Operação PMAL (Certo / Errado - CESPE)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Carga de Questões</label>
+                            <input type="number" id="simulado-qtd" value="10" min="2" max="100">
+                        </div>
+                        <div class="filter-group">
+                            <label>Tempo Regulamentar (Minutos)</label>
+                            <input type="number" id="simulado-tempo" value="30" min="5">
+                        </div>
+                    </div>
+                    <button class="btn btn-success" style="width:100%; font-size:1rem; letter-spacing:1px;" onclick="iniciarSimuladoCompleto()">Iniciar Cronômetro Operacional 🔒</button>
+                </div>
+
+                <div id="simulado-ativo" style="display:none;">
+                    <div class="timer-bar">
+                        <div style="font-size:0.85rem; font-weight:bold;">
+                            🎯 ALVO ATUAL: <span id="simulado-indice-view" style="color:var(--alerta-amarelo);">1/10</span>
+                        </div>
+                        <div style="font-size:0.85rem; font-weight:bold;">
+                            ⚡ TEMPO RESTANTE: <span id="simulado-regressivo" class="time-display">00:00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="question-card">
+                        <div class="meta-info">
+                            <span id="sim-meta">Foco Prova</span>
+                        </div>
+                        <div class="enunciado" id="sim-enunciado">Texto da questão</div>
+                        <div class="options-list" id="sim-alternativas"></div>
+                        
+                        <div class="actions" style="margin-top:30px;">
+                            <button class="btn" id="sim-btn-anterior" onclick="simuladoVoltar()" style="background:#444; border-color:#666;">← Recuar</button>
+                            <button class="btn btn-danger" onclick="entregarSimuladoPrecoce()">Encerrar Missão e Enviar Cartão-Resposta 📝</button>
+                            <button class="btn" id="sim-btn-avancar" onclick="simuladoAvancar()">Avançar →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="simulado-resultado" style="display:none;" class="form-card">
+                    <h2 style="color:var(--alerta-amarelo); text-align:center; margin-top:0;">📋 DEBRIEFING DA MISSÃO (RESULTADOS)</h2>
+                    <hr style="border-color:var(--oliva-light);">
+                    <div class="stats-grid">
+                        <div class="stat-card"><h3>Alvos Enfrentados</h3><p id="sim-res-total">0</p></div>
+                        <div class="stat-card" style="color:var(--sucesso-verde);"><h3>Eliminações (Acertos)</h3><p id="sim-res-acertos">0</p></div>
+                        <div class="stat-card" style="color:var(--perigo-vermelho);"><h3>Baixas (Erros)</h3><p id="sim-res-erros">0</p></div>
+                        <div class="stat-card"><h3>Tempo de Combate</h3><p id="sim-res-tempo" style="font-size:1.2rem; color:var(--alerta-amarelo);">00:00</p></div>
+                    </div>
+                    <h3 style="margin-top:25px; border-bottom:1px solid var(--oliva-light); padding-bottom:5px;">Análise Detalhada dos Alvos:</h3>
+                    <div id="sim-revisao-lista"></div>
+                    <button class="btn btn-confirmar" style="width:100%; margin-top:20px;" onclick="voltarParaSetupSimulado()">Montar Nova Missão 🔁</button>
+                </div>
+            </div>
+
+            <div id="panel-desempenho" class="panel">
+                <h2>Relatório de Rendimento Tático</h2>
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>Total Disparado</h3><p id="stat-total">0</p></div>
+                    <div class="stat-card" style="color: var(--sucesso-verde);"><h3>Acertos</h3><p id="stat-acertos">0</p></div>
+                    <div class="stat-card" style="color: var(--perigo-vermelho);"><h3>Erros</h3><p id="stat-erros">0</p></div>
+                    <div class="stat-card">
+                        <h3>Taxa de Eficiência</h3>
+                        <p id="stat-porcentagem">0%</p>
+                        <div class="progress-container"><div class="progress-bar" id="stat-barra"></div></div>
+                    </div>
+                </div>
+                <h3>Aproveitamento Estratégico por Disciplina</h3>
+                <table class="performance-table">
+                    <thead><tr><th>Matéria Disciplinar</th><th>Questões Combatidas</th><th>Sucesso (Acertos)</th><th>Aproveitamento</th></tr></thead>
+                    <tbody id="tabela-materia-corpo"></tbody>
+                </table>
+                <button class="btn btn-danger" style="margin-top: 25px; font-size: 0.75rem; padding: 6px 12px;" onclick="resetarHistorico()">Zerar Histórico de Combate 🔄</button>
+            </div>
+
+            <div id="panel-cadastrar" class="panel">
+                <div class="bizu-caixa">
+                    <strong style="color:var(--alerta-amarelo);">⚡ DIRETRIZ DE SINCRONIZAÇÃO COMPLETA:</strong><br>
+                    Como estamos rodando tudo centralizado em um único arquivo, sempre que você **cadastrar uma questão** ou **recrutar um usuário**, vá até o fim desta página, copie o código completo gerado e cole dentro do arquivo `index.html` do seu GitHub.
+                </div>
+                <div class="form-card">
+                    <h2>Abastecimento Manual do Arsenal (Questões)</h2>
+                    <div class="form-group">
+                        <label>Foco do Concurso</label>
+                        <select id="cad-concurso" onchange="alwaysUpdateMatCadastro()"><option value="PMBA">PMBA (Soldado)</option><option value="PMAL">PMAL (Soldado)</option></select>
+                    </div>
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group"><label>Matéria</label><select id="cad-materia" onchange="alwaysUpdateTopCadastro()"></select></div>
+                        <div class="form-group"><label>Tópico Correspondente</label><select id="cad-topico"></select></div>
+                    </div>
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group"><label>Banca Examinadora</label><input type="text" id="cad-banca" placeholder="Ex: FCC, Cebraspe"></div>
+                        <div class="form-group"><label>Ano do Combate</label><input type="number" id="cad-ano" value="2026"></div>
+                    </div>
+                    <div class="form-group"><label>Corpo do Enunciado</label><textarea id="cad-enunciado" rows="4"></textarea></div>
+                    <div class="form-group"><label>Alternativa A (ou "Certo")</label><input type="text" id="cad-a"></div>
+                    <div class="form-group"><label>Alternativa B (ou "Errado")</label><input type="text" id="cad-b"></div>
+                    <div class="form-group"><label>Alternativa C</label><input type="text" id="cad-c"></div>
+                    <div class="form-group"><label>Alternativa D</label><input type="text" id="cad-d"></div>
+                    <div class="form-group"><label>Alternativa E</label><input type="text" id="cad-e"></div>
+                    <div class="form-group">
+                        <label>Gabarito Definitivo</label>
+                        <select id="cad-correta"><option value="0">A (ou Certo)</option><option value="1">B (ou Errado)</option><option value="2">C</option><option value="3">D</option><option value="4">E</option></select>
+                    </div>
+                    <div class="form-group"><label>Bizu Técnico / Comentário</label><textarea id="cad-comentario" rows="2"></textarea></div>
+                    <button class="btn btn-success" style="width: 100%;" onclick="salvarQuestaoManual()">Gravar Carga e Atualizar Código 💾</button>
+                </div>
+
+                <h3>CÓDIGO-FONTE ATUALIZADO DO SITE (Copie e salve no index.html do GitHub)</h3>
+                <textarea id="output-html-questoes" class="code-output" rows="10" readonly onclick="this.select()"></textarea>
+            </div>
+
+            <div id="panel-recrutamento" class="panel">
+                <div class="bizu-caixa">
+                    <strong style="color:var(--alerta-amarelo);">🪖 ALMANAQUE DE RECRUTAMENTO INTERNO:</strong><br>
+                    Adicione novos operadores ou altere senhas diretamente aqui. Após adicionar, vá até o final da página, copie o código inteiro e salve no `index.html` do GitHub.
+                </div>
+                <div class="form-card">
+                    <h2>Cadastrar Novo Combatente (Operador)</h2>
+                    <div class="form-group">
+                        <label>Nome de Identificação (Login)</label>
+                        <input type="text" id="rec-user" placeholder="Ex: joao" style="text-transform: lowercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha Operacional</label>
+                        <input type="text" id="rec-pass" placeholder="Ex: 789">
+                    </div>
+                    <button class="btn btn-success" style="width:100%;" onclick="salvarNovoUsuarioInterface()">Inscrever Combatente e Atualizar Código 💾</button>
+                </div>
+
+                <h3>CÓDIGO-FONTE ATUALIZADO DO SITE (Copie e salve no index.html do GitHub)</h3>
+                <textarea id="output-html-usuarios" class="code-output" rows="10" readonly onclick="this.select()"></textarea>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // === BANCO DE DADOS INTERNO TOTALMENTE CENTRALIZADO ===
+    // [MODIFIQUE OU ADICIONE NOVOS USUÁRIOS DIRETAMENTE NESTA COLEÇÃO]
+    let baseOperadores = {
+  "moises": "123",
+  "parca": "456"
+};
+
+    // [MODIFIQUE OU ADICIONE NOVAS QUESTÕES DIRETAMENTE NESTA LISTA]
+    let bancoQuestoes = [
+  {
+    "concurso": "PMBA",
+    "disciplina": "Noções de Igualdade Racial e de Gênero",
+    "topico": "Lei nº 7.716/89 (Crimes de preconceito)",
+    "banca": "IBFC",
+    "ano": "2023",
+    "enunciado": "De acordo com a Lei Federal nº 7.716/1989, que pune os crimes resultantes de preconceito de raça ou de cor, assinale a alternativa correta:",
+    "alternativas": [
+      "Os crimes previstos nesta Lei são afiançáveis no ordenamento.",
+      "A ley pune única e exclusivamente atos de agentes públicos confessionais.",
+      "Constitui crime recusar ou impedir acesso a estabelecimento comercial por preconceito.",
+      "A injúria racial não possui equiparação direta com racismo.",
+      "Os crimes tipificados prescrevem no período regular de 5 anos."
+    ],
+    "correta": 2,
+    "comentario": "Gabarito: C. Impedir o acesso a comércio de natureza privada por preconceito é conduta criminosa enquadrada na Lei."
+  },
+  {
+    "concurso": "PMAL",
+    "disciplina": "Noções de Direito Constitucional",
+    "topico": "Defesa do Estado e Segurança Pública (Art. 144)",
+    "banca": "Cebraspe",
+    "ano": "2021",
+    "enunciado": "Conforme o Artigo 144 da Carta Magna, às polícias militares cabem a polícia ostensiva e a preservação da ordem pública.",
+    "alternativas": [
+      "Certo",
+      "Errado",
+      "",
+      "",
+      ""
+    ],
+    "correta": 0,
+    "comentario": "Gabarito: Certo. Disposição literal e exata contida na redação do Artigo 144, § 5º da CF/88."
+  }
+];
+
+    // EDITAIS VERTICALIZADOS
+    const editais = {
+        "PMBA": {
+            "Língua Portuguesa": ["Ortografia oficial", "Acentuação gráfica", "Concordância nominal e verbal", "Crase", "Intelecção de texto"],
+            "Matemática/ Raciocínio Lógico": ["Frações, conjuntos, porcentagens e sequências", "Proposições, conectivos, equivalência"],
+            "História do Brasil": ["Sociedade colonial e trabalho escravo", "A Bahia na Independence e na República"],
+            "Geografia do Brasil": ["Aspectos humanos e demografia", "Geografia da Bahia (Político, físico e socioeconômico)"],
+            "Noções de Direito Constitucional": ["Dos direitos e deveres individuais e coletivos (Art. 5º)", "Da Organização do Estado e Segurança Pública"],
+            "Noções de Direitos Humanos": ["Declaração Universal dos Direitos Humanos/1948", "Convenção Americana sobre Direitos Humanos/1969"],
+            "Noções de Direito Administrativo": ["Administração pública: conceito, estrutura e princípios", "Poderes administrativos", "Atos administrativos"],
+            "Noções de Direito Penal": ["Do crime (Fato típico, ilicitude, culpabilidade)", "Crimes contra a Pessoa", "Crimes contra o Patrimônio"],
+            "Noções de Igualdade Racial e de Gênero": ["Estatuto da Igualdade Racial (Lei nº 12.288/10)", "Lei nº 7.716/89 (Crimes de preconceito)"],
+            "Noções de Direito Penal Militar": ["Dos Crimes contra a Autoridade ou Disciplina Militar", "Crimes Militares em Tempo de Paz"]
+        },
+        "PMAL": {
+            "Língua Portuguesa": ["Compreensão e interpretação de textos", "Concordância verbal e nominal", "Crase"],
+            "Matemática": ["Conjunto numérico e operações", "Porcentagem", "Juros simples e compostos"],
+            "Noções de Informática": ["Ambiente Windows", "Segurança da informação e malware"],
+            "Conhecimentos de Alagoas": ["Formação histórica de Alagoas", "Quilombo dos Palmares"],
+            "Legislação Pertinente": ["Lei Estadual nº 5.346/1992 (Estatuto PMAL)", "Decreto Estadual nº 37.042/1996 (Regulamento Disciplinar)"],
+            "Noções de Direito Administrativo": ["Princípios e Regime Jurídico", "Poderes da administração"],
+            "Noções de Direito Constitucional": ["Defesa do Estado e Segurança Pública (Art. 144)"],
+            "Noções de Direito Penal Militar": ["Aplicação da lei penal militar", "Do crime e imputabilidade"]
+        }
+    };
+
+    let operadorAtivo = "";
+    let h_rendimento = { total: 0, acertos: 0, erros: 0, materias: {} };
+    let statusQuestoes = {}; 
+
+    let simuladoQuestoes = [];
+    let simuladoRespostasUsuario = []; 
+    let simuladoIndiceAtual = 0;
+    let simuladoTempoRestanteSegundos = 0;
+    let simuladoTempoOriginalSegundos = 0;
+    let simuladoIntervaloContagem;
+
+    let questoesFiltradas = [];
+    let indiceAtual = 0;
+    let respostaGeralSelecionada = null;
+    let jaRespondeuGeral = false;
+
+    // LOGIN TÁTICO LOCAL
+    function autenticarOperador() {
+        const user = document.getElementById('auth-user').value.trim().toLowerCase();
+        const pass = document.getElementById('auth-pass').value.trim();
+
+        if (baseOperadores[user] && String(baseOperadores[user]) === pass) {
+            operadorAtivo = user;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('main-operational-area').style.display = 'block';
+            document.getElementById('view-operador').innerText = user.toUpperCase();
+
+            if(localStorage.getItem(`h_rendimento_${operadorAtivo}`)) {
+                h_rendimento = JSON.parse(localStorage.getItem(`h_rendimento_${operadorAtivo}`));
+            } else {
+                h_rendimento = { total: 0, acertos: 0, erros: 0, materias: {} };
+            }
+            if(localStorage.getItem(`statusQuestoes_${operadorAtivo}`)) {
+                statusQuestoes = JSON.parse(localStorage.getItem(`statusQuestoes_${operadorAtivo}`));
+            } else {
+                statusQuestoes = {};
+            }
+
+            atualizarMateriasDoFiltro();
+            alwaysUpdateMatCadastro();
+            filtrarEConstruirBanco();
+            gerarCodigoHTMLCompleto();
+        } else {
+            alert("🚨 CREDENCIAIS INCORRETAS OU OPERADOR NÃO CADASTRADO!");
+        }
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`panel-${tab}`).classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        if(tab === 'cadastrar' || tab === 'recrutamento') gerarCodigoHTMLCompleto();
+        if(tab === 'desempenho') renderizarDesempenho();
+    }
+
+    // CADASTRO DE OPERADORES
+    function salvarNovoUsuarioInterface() {
+        const novoUser = document.getElementById('rec-user').value.trim().toLowerCase();
+        const novaSenha = document.getElementById('rec-pass').value.trim();
+
+        if(!novoUser || !novaSenha) {
+            alert("Erro: Preencha todos os campos do recruta.");
+            return;
+        }
+
+        baseOperadores[novoUser] = novaSenha;
+        gerarCodigoHTMLCompleto();
+        alert(`Combatente [ ${novoUser.toUpperCase()} ] inscrito na memória operacional. Copie o código gerado abaixo e salve no GitHub para fixar!`);
+    }
+
+    // CADASTRO DE QUESTÕES
+    function salvarQuestaoManual() {
+        const novaQ = {
+            concurso: document.getElementById('cad-concurso').value,
+            disciplina: document.getElementById('cad-materia').value,
+            topico: document.getElementById('cad-topico').value,
+            banca: document.getElementById('cad-banca').value || "Inédita",
+            ano: document.getElementById('cad-ano').value || "2026",
+            enunciado: document.getElementById('cad-enunciado').value,
+            alternativas: [document.getElementById('cad-a').value, document.getElementById('cad-b').value, document.getElementById('cad-c').value, document.getElementById('cad-d').value, document.getElementById('cad-e').value],
+            correta: parseInt(document.getElementById('cad-correta').value),
+            comentario: document.getElementById('cad-comentario').value
+        };
+        if(!novaQ.enunciado || !novaQ.alternativas[0]) { alert("Preencha o enunciado e pelo menos a Alternativa A!"); return; }
+        bancoQuestoes.push(novaQ);
+        gerarCodigoHTMLCompleto();
+        filtrarEConstruirBanco();
+        alert("Questão engatilhada! Salve o código gerado no arquivo do GitHub para sincronizar.");
+    }
+
+    // ENGENHARIA DE AUTOMAÇÃO: GERA O PRÓPRIO HTML ATUALIZADO
+    function gerarCodigoHTMLCompleto() {
+        const codigoAntesDoScript = document.documentElement.outerHTML.split('<script>')[0];
+        
+        const blocoScriptNovo = `<script>
+    // === BANCO DE DADOS INTERNO TOTALMENTE CENTRALIZADO ===
+    // [MODIFIQUE OU ADICIONE NOVOS USUÁRIOS DIRETAMENTE NESTA COLEÇÃO]
+    let baseOperadores = ${JSON.stringify(baseOperadores, null, 2)};
+
+    // [MODIFIQUE OU ADICIONE NOVAS QUESTÕES DIRETAMENTE NESTA LISTA]
+    let bancoQuestoes = ${JSON.stringify(bancoQuestoes, null, 2)};
+
+    // EDITAIS VERTICALIZADOS
+    const editais = ${JSON.stringify(editais, null, 4)};` + "\n\n" + 
+    document.querySelector('script').innerHTML.split('// EDITAIS VERTICALIZADOS')[1];
+
+        const htmlCompletoFinal = codigoAntesDoScript + blocoScriptNovo + "\n" + `<\/script>\n<\/body>\n<\/html>`;
+        
+        document.getElementById('output-html-questoes').value = htmlCompletoFinal;
+        document.getElementById('output-html-usuarios').value = htmlCompletoFinal;
+    }
+
+    // ================= OPERAÇÃO: SIMULADO REAL TIME =================
+    function iniciarSimuladoCompleto() {
+        const focoConcurso = document.getElementById('simulado-concurso').value;
+        const qtdDesejada = parseInt(document.getElementById('simulado-qtd').value);
+        const minutosDefinidos = parseInt(document.getElementById('simulado-tempo').value);
+
+        let poolQuestoes = bancoQuestoes;
+        if(focoConcurso !== 'TODOS') {
+            poolQuestoes = bancoQuestoes.filter(q => q.concurso === focoConcurso);
+        }
+
+        if(poolQuestoes.length === 0) {
+            alert("Nenhuma questão disponível nessa configuração!");
+            return;
+        }
+
+        let embaralhadas = [...poolQuestoes].sort(() => 0.5 - Math.random());
+        simuladoQuestoes = embaralhadas.slice(0, qtdDesejada);
+        simuladoRespostasUsuario = new Array(simuladoQuestoes.length).fill(null);
+        simuladoIndiceAtual = 0;
+
+        simuladoTempoOriginalSegundos = minutosDefinidos * 60;
+        simuladoTempoRestanteSegundos = simuladoTempoOriginalSegundos;
+
+        document.getElementById('simulado-setup').style.display = 'none';
+        document.getElementById('simulado-resultado').style.display = 'none';
+        document.getElementById('simulado-ativo').style.display = 'block';
+
+        atualizarRelogioSimulado();
+        clearInterval(simuladoIntervaloContagem);
+        simuladoIntervaloContagem = setInterval(() => {
+            if(simuladoTempoRestanteSegundos > 0) {
+                simuladoTempoRestanteSegundos--;
+                atualizarRelogioSimulado();
+            } else {
+                finalizarSimuladoAutomaticoPorTempo();
+            }
+        }, 1000);
+
+        exibirQuestaoNoSimulado();
+    }
+
+    function atualizarRelogioSimulado() {
+        let hrs = Math.floor(simuladoTempoRestanteSegundos / 3600).toString().padStart(2, '0');
+        let mins = Math.floor((simuladoTempoRestanteSegundos % 3600) / 60).toString().padStart(2, '0');
+        let segs = (simuladoTempoRestanteSegundos % 60).toString().padStart(2, '0');
+        const display = document.getElementById('simulado-regressivo');
+        display.innerText = `${hrs}:${mins}:${segs}`;
+        if(simuladoTempoRestanteSegundos < 300) display.classList.add('countdown-warn');
+        else display.classList.remove('countdown-warn');
+    }
+
+    function exibirQuestaoNoSimulado() {
+        const q = simuladoQuestoes[simuladoIndiceAtual];
+        document.getElementById('simulado-indice-view').innerText = `${simuladoIndiceAtual + 1} de ${simuladoQuestoes.length}`;
+        document.getElementById('sim-meta').innerText = `${q.concurso} | BANCA: ${q.banca} (${q.ano}) | MATÉRIA: ${q.disciplina}`;
+        document.getElementById('sim-enunciado').innerText = q.enunciado;
+
+        const altContainer = document.getElementById('sim-alternativas');
+        altContainer.innerHTML = "";
+
+        const ehCertoErrado = !q.alternativas[2] || q.alternativas[2].trim() === "";
+
+        q.alternativas.forEach((texto, idx) => {
+            if(texto && texto.trim() !== "") {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'option-wrapper';
+                if(simuladoRespostasUsuario[simuladoIndiceAtual] === idx) wrapper.classList.add('selected');
+
+                const btnOpcao = document.createElement('button');
+                btnOpcao.className = 'option-item';
+                btnOpcao.innerText = ehCertoErrado ? texto : `${String.fromCharCode(65 + idx)}) ${texto}`;
+                btnOpcao.onclick = () => {
+                    if(!wrapper.classList.contains('eliminated')) {
+                        simuladoRespostasUsuario[simuladoIndiceAtual] = idx;
+                        marcarAlternativaEstiloSimulado();
+                    }
+                };
+
+                wrapper.appendChild(btnOpcao);
+
+                if(!ehCertoErrado) {
+                    const btnEliminar = document.createElement('button');
+                    btnEliminar.className = 'btn-eliminar';
+                    btnEliminar.innerText = 'x';
+                    btnEliminar.onclick = (e) => {
+                        e.stopPropagation();
+                        wrapper.classList.toggle('eliminated');
+                        if(simuladoRespostasUsuario[simuladoIndiceAtual] === idx) {
+                            simuladoRespostasUsuario[simuladoIndiceAtual] = null;
+                            wrapper.classList.remove('selected');
+                        }
+                    };
+                    wrapper.appendChild(btnEliminar);
+                }
+                altContainer.appendChild(wrapper);
+            }
+        });
+
+        document.getElementById('sim-btn-anterior').style.visibility = (simuladoIndiceAtual === 0) ? 'hidden' : 'visible';
+        document.getElementById('sim-btn-avancar').innerText = (simuladoIndiceAtual === simuladoQuestoes.length - 1) ? 'Revisar Fim' : 'Avançar →';
+    }
+
+    function marcarAlternativaEstiloSimulado() {
+        const wrappers = document.querySelectorAll('#sim-alternativas .option-wrapper');
+        wrappers.forEach((w, idx) => {
+            if(simuladoRespostasUsuario[simuladoIndiceAtual] === idx) w.classList.add('selected');
+            else w.classList.remove('selected');
+        });
+    }
+
+    function simuladoVoltar() { if(simuladoIndiceAtual > 0) { simuladoIndiceAtual--; exibirQuestaoNoSimulado(); } }
+    function simuladoAvancar() { if(simuladoIndiceAtual < simuladoQuestoes.length - 1) { simuladoIndiceAtual++; exibirQuestaoNoSimulado(); } }
+    function entregarSimuladoPrecoce() { if(confirm("Confirmar fechamento do simulado?")) calcularResultadoFinalSimulado(); }
+    function finalizarSimuladoAutomaticoPorTempo() { clearInterval(simuladoIntervaloContagem); alert("🚨 FIM DO TEMPO!"); calcularResultadoFinalSimulado(); }
+
+    function calcularResultadoFinalSimulado() {
+        clearInterval(simuladoIntervaloContagem);
+        let acertos = 0, erros = 0;
+        const revisaoContainer = document.getElementById('sim-revisao-lista');
+        revisaoContainer.innerHTML = "";
+
+        simuladoQuestoes.forEach((q, idx) => {
+            const respUsuario = simuladoRespostasUsuario[idx];
+            const idQ = btoa(unescape(encodeURIComponent((q.enunciado || "").substring(0, 30) + q.concurso + q.disciplina)));
+            const ehCertoErrado = !q.alternativas[2] || q.alternativas[2].trim() === "";
+            let statusTexto = "BAIXA (Incorreta / Sem Resposta)";
+            let estiloCard = "border-left: 4px solid var(--perigo-vermelho);";
+
+            if(respUsuario !== null) {
+                if(!h_rendimento.materias[q.disciplina]) h_rendimento.materias[q.disciplina] = { total: 0, acertos: 0 };
+                h_rendimento.total += 1;
+                h_rendimento.materias[q.disciplina].total += 1;
+
+                if(respUsuario === q.correta) {
+                    acertos++;
+                    h_rendimento.acertos += 1;
+                    h_rendimento.materias[q.disciplina].acertos += 1;
+                    statusQuestoes[idQ] = "ACERTO";
+                    statusTexto = "ALVO ELIMINADO (Correta)";
+                    estiloCard = "border-left: 4px solid var(--sucesso-verde);";
+                } else {
+                    erros++;
+                    h_rendimento.erros += 1;
+                    statusQuestoes[idQ] = "ERRO";
+                }
+            } else { erros++; }
+
+            let htmlOpcoes = "";
+            q.alternativas.forEach((alt, aIdx) => {
+                if(alt && alt.trim() !== "") {
+                    let marcaCor = "";
+                    if(aIdx === q.correta) marcaCor = "color:#2ecc71; font-weight:bold;";
+                    if(aIdx === respUsuario && respUsuario !== q.correta) marcaCor = "color:var(--perigo-vermelho); text-decoration:line-through;";
+                    htmlOpcoes += `<p style="margin:4px 0; font-size:0.9rem; ${marcaCor}">${ehCertoErrado ? alt : String.fromCharCode(65 + aIdx) + ') ' + alt}</p>`;
+                }
+            });
+
+            revisaoContainer.innerHTML += `
+                <div style="${estiloCard} padding-left:15px; margin-bottom:15px; background:var(--preto-fosco); padding-top:10px;">
+                    <p style="font-size:0.75rem; color:#888; margin:0;">ALVO ${idx+1} (${q.concurso}) - STATUS: <strong>${statusTexto}</strong></p>
+                    <p style="margin:6px 0; font-size:0.95rem;">${q.enunciado}</p>
+                    ${htmlOpcoes}
+                    <p style="font-size:0.8rem; color:var(--alerta-amarelo); background:var(--cinza-asfalto); padding:6px; margin-top:5px;">💡 BIZU: ${q.comentario || 'Sem comentários.'}</p>
+                </div>
+            `;
+        });
+
+        localStorage.setItem(`h_rendimento_${operadorAtivo}`, JSON.stringify(h_rendimento));
+        localStorage.setItem(`statusQuestoes_${operadorAtivo}`, JSON.stringify(statusQuestoes));
+
+        let tempoGasto = simuladoTempoOriginalSegundos - simuladoTempoRestanteSegundos;
+        let mGasto = Math.floor(tempoGasto / 60).toString().padStart(2, '0');
+        let sGasto = (tempoGasto % 60).toString().padStart(2, '0');
+
+        document.getElementById('sim-res-total').innerText = simuladoQuestoes.length;
+        document.getElementById('sim-res-acertos').innerText = acertos;
+        document.getElementById('sim-res-erros').innerText = erros;
+        document.getElementById('sim-res-tempo').innerText = `${mGasto}:${sGasto} min`;
+
+        document.getElementById('simulado-ativo').style.display = 'none';
+        document.getElementById('simulado-resultado').style.display = 'block';
+    }
+
+    function voltarParaSetupSimulado() {
+        document.getElementById('simulado-resultado').style.display = 'none';
+        document.getElementById('simulado-setup').style.display = 'block';
+    }
+
+    // ================= OPERAÇÃO: MODULO DIÁRIO =================
+    function atualizarMateriasDoFiltro() {
+        const conc = document.getElementById('filtro-concurso').value;
+        const matSelect = document.getElementById('filtro-materia');
+        matSelect.innerHTML = '<option value="TODAS">Todas as Matérias</option>';
+        let materias = (conc === 'TODOS') ? [...new Set([...Object.keys(editais.PMBA), ...Object.keys(editais.PMAL)])] : Object.keys(editais[conc]);
+        materias.sort().forEach(m => { matSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+        atualizarTopicosDoFiltro();
+    }
+
+    function atualizarTopicosDoFiltro() {
+        const conc = document.getElementById('filtro-concurso').value;
+        const mat = document.getElementById('filtro-materia').value;
+        const topSelect = document.getElementById('filtro-topico');
+        topSelect.innerHTML = '<option value="TODOS">Todos os Tópicos</option>';
+
+        if (mat !== 'TODAS') {
+            let topicos = [];
+            if (conc === 'TODOS') {
+                if(editais.PMBA[mat]) topicos = [...topicos, ...editais.PMBA[mat]];
+                if(editais.PMAL[mat]) topicos = [...topicos, ...editais.PMAL[mat]];
+            } else { topicos = editais[conc][mat] || []; }
+            [...new Set(topicos)].forEach(t => { topSelect.innerHTML += `<option value="${t}">${t}</option>`; });
+        }
+        filtrarEConstruirBanco();
+    }
+
+    function filtrarEConstruirBanco() {
+        const conc = document.getElementById('filtro-concurso').value;
+        const mat = document.getElementById('filtro-materia').value;
+        const top = document.getElementById('filtro-topico').value;
+        const statusFiltro = document.getElementById('filtro-status').value;
+
+        questoesFiltradas = bancoQuestoes.filter(q => {
+            const matchConc = (conc === 'TODOS' || q.concurso === conc);
+            const matchMat = (mat === 'TODAS' || q.disciplina === mat);
+            const matchTop = (top === 'TODOS' || q.topico === top);
+            
+            const idQuestao = btoa(unescape(encodeURIComponent((q.enunciado || "").substring(0, 30) + q.concurso + q.disciplina)));
+            const sit = statusQuestoes[idQuestao] || "NOVA";
+            
+            let matchStatus = true;
+            if(statusFiltro === 'NAO_RESPONDIDAS') matchStatus = (sit === 'NOVA');
+            if(statusFiltro === 'ACERTADAS') matchStatus = (sit === 'ACERTO');
+            if(statusFiltro === 'ERRADAS') matchStatus = (sit === 'ERRO');
+
+            return matchConc && matchMat && matchTop && matchStatus;
+        });
+
+        indiceAtual = 0;
+        exibirQuestaoGeral();
+    }
+
+    function exibirQuestaoGeral() {
+        jaRespondeuGeral = false;
+        respostaGeralSelecionada = null;
+        document.getElementById('btn-proxima').style.display = 'none';
+        document.getElementById('btn-confirmar-geral').style.display = 'none';
+        document.getElementById('questao-comentario').style.display = 'none';
+
+        if (questoesFiltradas.length === 0) {
+            document.getElementById('questao-meta').innerText = "Vazio";
+            document.getElementById('questao-status-badge').innerText = "";
+            document.getElementById('questao-enunciado').innerText = "Nenhuma questão encontrada com esses filtros.";
+            document.getElementById('questao-alternativas').innerHTML = "";
+            document.getElementById('contador-progresso').innerText = "";
+            return;
+        }
+
+        const q = questoesFiltradas[indiceAtual];
+        document.getElementById('questao-meta').innerText = `${q.concurso} | ${q.disciplina} -> ${q.topico} | BANCA: ${q.banca} (${q.ano})`;
+        document.getElementById('questao-enunciado').innerText = q.enunciado;
+        document.getElementById('contador-progresso').innerText = `Alvo ${indiceAtual + 1} de ${questoesFiltradas.length}`;
+
+        const idQ = btoa(unescape(encodeURIComponent((q.enunciado || "").substring(0, 30) + q.concurso + q.disciplina)));
+        const sit = statusQuestoes[idQ] || "NOVA";
+        const badge = document.getElementById('questao-status-badge');
+        if(sit === 'ACERTO') { badge.className = "status-badge badge-acerto"; badge.innerText = "Eliminado"; }
+        else if(sit === 'ERRO') { badge.className = "status-badge badge-erro"; badge.innerText = "Falhou"; }
+        else { badge.className = "status-badge badge-novo"; badge.innerText = "Intacto"; }
+
+        const altContainer = document.getElementById('questao-alternativas');
+        altContainer.innerHTML = "";
+        const ehCertoErrado = !q.alternativas[2] || q.alternativas[2].trim() === "";
+
+        q.alternativas.forEach((texto, idx) => {
+            if(texto && texto.trim() !== "") {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'option-wrapper';
+
+                const btnOpcao = document.createElement('button');
+                btnOpcao.className = 'option-item';
+                btnOpcao.innerText = ehCertoErrado ? texto : `${String.fromCharCode(65 + idx)}) ${texto}`;
+                btnOpcao.onclick = () => {
+                    if(!jaRespondeuGeral && !wrapper.classList.contains('eliminated')) {
+                        respostaGeralSelecionada = idx;
+                        document.querySelectorAll('#questao-alternativas .option-wrapper').forEach(w => w.classList.remove('selected'));
+                        wrapper.classList.add('selected');
+                        document.getElementById('btn-confirmar-geral').style.display = 'inline-block';
+                    }
+                };
+                wrapper.appendChild(btnOpcao);
+
+                if(!ehCertoErrado) {
+                    const btnEliminar = document.createElement('button');
+                    btnEliminar.className = 'btn-eliminar';
+                    btnEliminar.innerText = 'x';
+                    btnEliminar.onclick = (e) => {
+                        e.stopPropagation();
+                        if(!jaRespondeuGeral) {
+                            wrapper.classList.toggle('eliminated');
+                            if(respostaGeralSelecionada === idx) {
+                                respostaGeralSelecionada = null;
+                                wrapper.classList.remove('selected');
+                                document.getElementById('btn-confirmar-geral').style.display = 'none';
+                            }
+                        }
+                    };
+                    wrapper.appendChild(btnEliminar);
+                }
+                altContainer.appendChild(wrapper);
+            }
+        });
+    }
+
+    function confirmarEscolhaGeral() {
+        if(respostaGeralSelecionada === null || jaRespondeuGeral) return;
+        jaRespondeuGeral = true;
+        document.getElementById('btn-confirmar-geral').style.display = 'none';
+
+        const q = questoesFiltradas[indiceAtual];
+        const wrappers = document.querySelectorAll('#questao-alternativas .option-wrapper');
+        const mat = q.disciplina;
+        const idQ = btoa(unescape(encodeURIComponent((q.enunciado || "").substring(0, 30) + q.concurso + q.disciplina)));
+
+        if(!h_rendimento.materias[mat]) h_rendimento.materias[mat] = { total: 0, acertos: 0 };
+        h_rendimento.total += 1;
+        h_rendimento.materias[mat].total += 1;
+
+        if(respostaGeralSelecionada === q.correta) {
+            wrappers[respostaGeralSelecionada].classList.add('correct');
+            h_rendimento.acertos += 1;
+            h_rendimento.materias[mat].acertos += 1;
+            statusQuestoes[idQ] = "ACERTO";
+        } else {
+            wrappers[respostaGeralSelecionada].classList.add('wrong');
+            h_rendimento.erros += 1;
+            if(wrappers[q.correta]) wrappers[q.correta].classList.add('correct');
+            statusQuestoes[idQ] = "ERRO";
+        }
+
+        localStorage.setItem(`h_rendimento_${operadorAtivo}`, JSON.stringify(h_rendimento));
+        localStorage.setItem(`statusQuestoes_${operadorAtivo}`, JSON.stringify(statusQuestoes));
+
+        if(q.comentario) {
+            const cBox = document.getElementById('questao-comentario');
+            cBox.innerHTML = `<strong>💡 ANÁLISE TÁTICA:</strong><br>${q.comentario}`;
+            cBox.style.display = 'block';
+        }
+        document.getElementById('btn-proxima').style.display = 'block';
+    }
+
+    function proximaQuestao() {
+        indiceAtual++;
+        if(indiceAtual < questoesFiltradas.length) { exibirQuestaoGeral(); }
+        else { alert("🎯 Fim das questões disponíveis! Reiniciando."); indiceAtual = 0; exibirQuestaoGeral(); }
+    }
+
+    function renderizarDesempenho() {
+        document.getElementById('stat-total').innerText = h_rendimento.total;
+        document.getElementById('stat-acertos').innerText = h_rendimento.acertos;
+        document.getElementById('stat-erros').innerText = h_rendimento.erros;
+        let porc = (h_rendimento.total > 0) ? Math.round((h_rendimento.acertos / h_rendimento.total) * 100) : 0;
+        document.getElementById('stat-porcentagem').innerText = `${porc}%`;
+        document.getElementById('stat-barra').style.width = `${porc}%`;
+
+        const corpo = document.getElementById('tabela-materia-corpo');
+        corpo.innerHTML = "";
+        if(Object.keys(h_rendimento.materias).length === 0) {
+            corpo.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#7f8c8d;">Nenhum registro tático computado.</td></tr>`;
+            return;
+        }
+        for(let m in h_rendimento.materias) {
+            let d = h_rendimento.materias[m];
+            let mP = Math.round((d.acertos / d.total) * 100);
+            corpo.innerHTML += `<tr><td><strong>${m}</strong></td><td>${d.total}</td><td style="color:#2ecc71;font-weight:bold;">${d.acertos}</td><td><strong>${mP}%</strong><div class="progress-container" style="height:6px;max-width:150px;"><div class="progress-bar" style="width:${mP}%;background:${mP>70?'var(--sucesso-verde)':'var(--alerta-amarelo)'}"></div></div></td></tr>`;
+        }
+    }
+
+    function resetarHistorico() {
+        if(confirm("Deseja apagar os dados operacionais salvos?")) {
+            h_rendimento = { total: 0, acertos: 0, erros: 0, materias: {} };
+            statusQuestoes = {};
+            localStorage.removeItem(`h_rendimento_${operadorAtivo}`);
+            localStorage.removeItem(`statusQuestoes_${operadorAtivo}`);
+            renderizarDesempenho();
+            filtrarEConstruirBanco();
+        }
+    }
+
+    function alwaysUpdateMatCadastro() {
+        const conc = document.getElementById('cad-concurso').value;
+        const matSelect = document.getElementById('cad-materia');
+        matSelect.innerHTML = "";
+        Object.keys(editais[conc]).forEach(m => { matSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+        alwaysUpdateTopCadastro();
+    }
+
+    function alwaysUpdateTopCadastro() {
+        const conc = document.getElementById('cad-concurso').value;
+        const mat = document.getElementById('cad-materia').value;
+        const topSelect = document.getElementById('cad-topico');
+        topSelect.innerHTML = "";
+        if(editais[conc][mat]) { editais[conc][mat].forEach(t => { topSelect.innerHTML += `<option value="${t}">${t}</option>`; }); }
+    }
+</script>
+</body>
+</html>
